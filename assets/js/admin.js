@@ -115,6 +115,152 @@
 		} );
 	}
 
+	// Form design: switches, live preview, colour code and the unsaved-changes bar.
+	var settingsForm = document.getElementById( 'lc-settings' );
+	var mock = document.getElementById( 'lc-mock' );
+	var mockSuccess = document.getElementById( 'lc-mock-success' );
+	var colorInput = document.getElementById( 'lc-color' );
+	var colorHex = document.getElementById( 'lc-color-hex' );
+	var buttonText = document.getElementById( 'lc-button-text' );
+	var successText = document.getElementById( 'lc-success' );
+	var saveState = document.getElementById( 'lc-save-state' );
+	var rows = Array.prototype.slice.call( document.querySelectorAll( '.lc-row[data-field]' ) );
+	var dirty = false;
+
+	function make( tag, className, text ) {
+		var node = document.createElement( tag );
+
+		if ( className ) {
+			node.className = className;
+		}
+		if ( text ) {
+			node.textContent = text;
+		}
+
+		return node;
+	}
+
+	function syncRows() {
+		rows.forEach( function ( row ) {
+			var show = row.querySelector( '.lc-show' );
+			var required = row.querySelector( '.lc-required' );
+
+			row.classList.toggle( 'is-hidden', ! show.checked );
+
+			// A hidden field cannot be required; locked fields stay as they are.
+			if ( ! show.disabled ) {
+				required.disabled = ! show.checked;
+			}
+		} );
+	}
+
+	function renderPreview() {
+		if ( ! mock || ! config ) {
+			return;
+		}
+
+		var fields = rows.filter( function ( row ) {
+			return row.querySelector( '.lc-show' ).checked;
+		} ).map( function ( row ) {
+			var width = row.querySelector( '.lc-width:checked' );
+			var field = row.getAttribute( 'data-field' );
+
+			return {
+				name: field,
+				required: row.querySelector( '.lc-required' ).checked,
+				full: field === 'message' || ( width && width.value === 'full' ),
+			};
+		} );
+
+		// As on the site: a half-width field left alone at the end of a run takes the whole line.
+		var run = [];
+
+		function closeRun() {
+			if ( run.length % 2 !== 0 ) {
+				run[ run.length - 1 ].full = true;
+			}
+			run = [];
+		}
+
+		fields.forEach( function ( field ) {
+			if ( field.full ) {
+				closeRun();
+			} else {
+				run.push( field );
+			}
+		} );
+		closeRun();
+
+		var color = colorInput ? colorInput.value : '#4f46e5';
+
+		mock.textContent = '';
+		fields.forEach( function ( field ) {
+			var wrap = make( 'div', 'lc-mock-field' + ( field.full ? ' is-full' : '' ) );
+			var label = make( 'span', 'lc-mock-label', config.labels[ field.name ] || field.name );
+
+			if ( field.required ) {
+				label.appendChild( make( 'b', '', ' *' ) );
+			}
+
+			wrap.appendChild( label );
+			wrap.appendChild( make( 'div', 'lc-mock-input' + ( field.name === 'message' ? ' is-area' : '' ), config.placeholders[ field.name ] || '' ) );
+			mock.appendChild( wrap );
+		} );
+
+		var button = make( 'div', 'lc-mock-button', buttonText && buttonText.value ? buttonText.value : 'Send' );
+
+		button.style.background = color;
+		mock.appendChild( button );
+
+		if ( mockSuccess ) {
+			mockSuccess.textContent = successText && successText.value ? '✓ ' + successText.value : '';
+		}
+	}
+
+	function markDirty() {
+		if ( dirty || ! saveState ) {
+			return;
+		}
+
+		dirty = true;
+		saveState.textContent = config.unsaved;
+		saveState.classList.add( 'is-dirty' );
+	}
+
+	if ( settingsForm ) {
+		settingsForm.addEventListener( 'input', function ( event ) {
+			if ( event.target === colorHex && /^#[0-9a-f]{6}$/i.test( colorHex.value ) ) {
+				colorInput.value = colorHex.value;
+			}
+			if ( event.target === colorInput && colorHex ) {
+				colorHex.value = colorInput.value;
+			}
+
+			markDirty();
+			renderPreview();
+		} );
+
+		settingsForm.addEventListener( 'change', function () {
+			syncRows();
+			markDirty();
+			renderPreview();
+		} );
+
+		settingsForm.addEventListener( 'submit', function () {
+			dirty = false;
+		} );
+
+		window.addEventListener( 'beforeunload', function ( event ) {
+			if ( dirty ) {
+				event.preventDefault();
+				event.returnValue = '';
+			}
+		} );
+
+		syncRows();
+		renderPreview();
+	}
+
 	document.addEventListener( 'click', function ( event ) {
 		var copy = event.target.closest ? event.target.closest( '.lc-copy' ) : null;
 

@@ -68,6 +68,16 @@ final class Leads_Collector_Admin
                 'testing' => __('Testing…', 'leads-collector'),
                 'copied' => __('Copied', 'leads-collector'),
                 'failed' => __('The test could not run. Please try again.', 'leads-collector'),
+                'unsaved' => __('You have unsaved changes', 'leads-collector'),
+                'saved' => __('All changes saved', 'leads-collector'),
+                'labels' => Leads_Collector_Settings::field_labels(),
+                'placeholders' => [
+                    'name' => __('Your name', 'leads-collector'),
+                    'email' => 'you@example.com',
+                    'phone' => '(713) 555-0123',
+                    'model_number' => __('Model number', 'leads-collector'),
+                    'message' => __('How can we help?', 'leads-collector'),
+                ],
             ]
         );
     }
@@ -186,45 +196,55 @@ final class Leads_Collector_Admin
         $labels = Leads_Collector_Settings::field_labels();
         $locked = Leads_Collector_Settings::ALWAYS_REQUIRED;
         $full = Leads_Collector_Settings::sanitize_full($settings['full']);
+        $connected = Leads_Collector_Settings::is_connected();
+        $shortcode = '[leads_collector_form]';
         ?>
 		<div class="wrap lc-admin">
 			<header class="lc-header">
-				<div>
-					<h1><?php esc_html_e('Leads Collector', 'leads-collector'); ?></h1>
-					<p><?php esc_html_e('Send this site’s form leads and call clicks to Lead Manager.', 'leads-collector'); ?></p>
+				<div class="lc-brand">
+					<span class="lc-logo dashicons dashicons-feedback" aria-hidden="true"></span>
+					<div>
+						<h1><?php esc_html_e('Leads Collector', 'leads-collector'); ?></h1>
+						<p><?php esc_html_e('Send this site’s form leads and call clicks to Lead Manager.', 'leads-collector'); ?></p>
+					</div>
 				</div>
-				<span class="lc-pill <?php echo Leads_Collector_Settings::is_connected() ? 'lc-pill-on' : 'lc-pill-off'; ?>">
-					<?php echo Leads_Collector_Settings::is_connected() ? esc_html__('Active', 'leads-collector') : esc_html__('Not set up', 'leads-collector'); ?>
-				</span>
+				<div class="lc-header-meta">
+					<span class="lc-chip">v<?php echo esc_html(LEADS_COLLECTOR_VERSION); ?></span>
+					<span class="lc-pill <?php echo $connected ? 'lc-pill-on' : 'lc-pill-off'; ?>">
+						<span class="lc-dot" aria-hidden="true"></span>
+						<?php echo $connected ? esc_html__('Connected', 'leads-collector') : esc_html__('Not set up', 'leads-collector'); ?>
+					</span>
+				</div>
 			</header>
 
 			<?php if (current_user_can('update_plugins')) { ?>
 				<?php $update = Leads_Collector_Updater::status(); ?>
-				<section class="lc-card lc-updates" id="lc-updates" data-plugin="<?php echo esc_attr($update['plugin']); ?>" data-slug="<?php echo esc_attr($update['slug']); ?>">
-					<div class="lc-updates-text">
-						<h2><?php esc_html_e('Plugin updates', 'leads-collector'); ?></h2>
-						<p class="lc-muted">
-							<?php
-                            /* translators: %s: version number. */
-                            echo esc_html(sprintf(__('Installed version: %s', 'leads-collector'), LEADS_COLLECTOR_VERSION));
-                ?>
-							· <a href="<?php echo esc_url($update['releaseUrl']); ?>" target="_blank" rel="noopener"><?php esc_html_e('Release notes', 'leads-collector'); ?></a>
-						</p>
-						<p id="lc-update-result" class="lc-test-result<?php echo $update['hasUpdate'] ? ' is-warn' : ''; ?>" role="status" aria-live="polite"><?php echo esc_html($update['message']); ?></p>
+				<section class="lc-banner lc-updates" id="lc-updates" data-plugin="<?php echo esc_attr($update['plugin']); ?>" data-slug="<?php echo esc_attr($update['slug']); ?>">
+					<span class="lc-banner-icon dashicons dashicons-update" aria-hidden="true"></span>
+					<div class="lc-banner-text">
+						<strong><?php esc_html_e('Plugin updates', 'leads-collector'); ?></strong>
+						<span id="lc-update-result" class="lc-test-result<?php echo $update['hasUpdate'] ? ' is-warn' : ''; ?>" role="status" aria-live="polite"><?php echo esc_html($update['message']); ?></span>
 					</div>
 					<div class="lc-updates-actions">
-						<button type="button" class="button" id="lc-check-update"><?php esc_html_e('Check for updates', 'leads-collector'); ?></button>
-						<button type="button" class="button button-primary" id="lc-run-update" <?php echo $update['hasUpdate'] ? '' : 'hidden'; ?>><?php esc_html_e('Update now', 'leads-collector'); ?></button>
+						<a class="lc-link" href="<?php echo esc_url($update['releaseUrl']); ?>" target="_blank" rel="noopener"><?php esc_html_e('Release notes', 'leads-collector'); ?></a>
+						<button type="button" class="lc-btn lc-btn-ghost" id="lc-check-update"><?php esc_html_e('Check for updates', 'leads-collector'); ?></button>
+						<button type="button" class="lc-btn lc-btn-primary" id="lc-run-update" <?php echo $update['hasUpdate'] ? '' : 'hidden'; ?>><?php esc_html_e('Update now', 'leads-collector'); ?></button>
 					</div>
 				</section>
 			<?php } ?>
 
-			<form method="post" action="options.php" class="lc-form-settings">
+			<form method="post" action="options.php" class="lc-form-settings" id="lc-settings">
 				<?php settings_fields('leads_collector'); ?>
+				<input type="hidden" name="<?php echo esc_attr($name); ?>[columns]" value="2">
 
 				<section class="lc-card">
-					<h2><?php esc_html_e('1. Connect', 'leads-collector'); ?></h2>
-					<p class="lc-muted"><?php esc_html_e('In Lead Manager open Websites → this website and copy the site key (or paste the whole script snippet).', 'leads-collector'); ?></p>
+					<div class="lc-card-head">
+						<span class="lc-step">1</span>
+						<div>
+							<h2><?php esc_html_e('Connect to Lead Manager', 'leads-collector'); ?></h2>
+							<p class="lc-muted"><?php esc_html_e('In Lead Manager open Websites → this website and copy the site key (or paste the whole script snippet).', 'leads-collector'); ?></p>
+						</div>
+					</div>
 
 					<div class="lc-grid">
 						<label class="lc-field">
@@ -238,85 +258,131 @@ final class Leads_Collector_Admin
 					</div>
 
 					<div class="lc-test">
-						<button type="button" class="button" id="lc-test"><?php esc_html_e('Test connection', 'leads-collector'); ?></button>
+						<button type="button" class="lc-btn lc-btn-ghost" id="lc-test"><span class="dashicons dashicons-admin-links" aria-hidden="true"></span><?php esc_html_e('Test connection', 'leads-collector'); ?></button>
 						<span id="lc-test-result" class="lc-test-result" role="status" aria-live="polite"></span>
 					</div>
 				</section>
 
 				<section class="lc-card">
-					<h2><?php esc_html_e('2. Default form design', 'leads-collector'); ?></h2>
-					<p class="lc-muted"><?php esc_html_e('Every form uses these unless you change them on the block, the Elementor widget or the shortcode.', 'leads-collector'); ?></p>
+					<div class="lc-card-head">
+						<span class="lc-step">2</span>
+						<div>
+							<h2><?php esc_html_e('Form design', 'leads-collector'); ?></h2>
+							<p class="lc-muted"><?php esc_html_e('Every form on the site uses this design. The preview updates as you change it.', 'leads-collector'); ?></p>
+						</div>
+					</div>
 
-					<div class="lc-grid">
-						<div class="lc-field">
-							<span><?php esc_html_e('Fields', 'leads-collector'); ?></span>
-							<table class="lc-fields">
-								<thead>
-									<tr><th><?php esc_html_e('Field', 'leads-collector'); ?></th><th><?php esc_html_e('Show', 'leads-collector'); ?></th><th><?php esc_html_e('Required', 'leads-collector'); ?></th><th class="lc-width-head"><?php esc_html_e('Width', 'leads-collector'); ?></th></tr>
-								</thead>
-								<tbody>
+					<div class="lc-design">
+						<div class="lc-design-controls">
+							<h3 class="lc-label"><?php esc_html_e('Fields', 'leads-collector'); ?></h3>
+							<div class="lc-rows" role="list">
+								<div class="lc-row lc-row-head" aria-hidden="true">
+									<span><?php esc_html_e('Field', 'leads-collector'); ?></span>
+									<span><?php esc_html_e('Show', 'leads-collector'); ?></span>
+									<span><?php esc_html_e('Required', 'leads-collector'); ?></span>
+									<span><?php esc_html_e('Width', 'leads-collector'); ?></span>
+								</div>
 								<?php foreach ($labels as $field => $label) { ?>
 									<?php
                                     $is_locked = in_array($field, $locked, true);
                                     $always_full = in_array($field, Leads_Collector_Settings::ALWAYS_FULL, true);
                                     $is_full = in_array($field, $full, true);
+                                    $shown = in_array($field, $settings['fields'], true) || $is_locked;
                                     ?>
-									<tr>
-										<td><?php echo esc_html($label); ?></td>
-										<td><input type="checkbox" name="<?php echo esc_attr($name); ?>[fields][]" value="<?php echo esc_attr($field); ?>" <?php checked(in_array($field, $settings['fields'], true) || $is_locked); ?> <?php disabled($is_locked); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('Show %s', 'leads-collector'), $label)); ?>"></td>
-										<td><input type="checkbox" name="<?php echo esc_attr($name); ?>[required][]" value="<?php echo esc_attr($field); ?>" <?php checked(in_array($field, $settings['required'], true) || $is_locked); ?> <?php disabled($is_locked); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('%s is required', 'leads-collector'), $label)); ?>"></td>
-										<td class="lc-width">
-											<select name="<?php echo esc_attr($name); ?>[width][<?php echo esc_attr($field); ?>]" <?php disabled($always_full); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('Width of %s', 'leads-collector'), $label)); ?>">
-												<option value="half" <?php selected(! $is_full); ?>><?php esc_html_e('Half', 'leads-collector'); ?></option>
-												<option value="full" <?php selected($is_full); ?>><?php esc_html_e('Full width', 'leads-collector'); ?></option>
-											</select>
-										</td>
-									</tr>
+									<div class="lc-row<?php echo $shown ? '' : ' is-hidden'; ?>" role="listitem" data-field="<?php echo esc_attr($field); ?>">
+										<span class="lc-row-name">
+											<?php echo esc_html($label); ?>
+											<?php if ($is_locked) { ?><span class="lc-tag"><?php esc_html_e('Always on', 'leads-collector'); ?></span><?php } ?>
+										</span>
+										<label class="lc-switch">
+											<input type="checkbox" class="lc-show" name="<?php echo esc_attr($name); ?>[fields][]" value="<?php echo esc_attr($field); ?>" <?php checked($shown); ?> <?php disabled($is_locked); ?>>
+											<span class="lc-switch-ui" aria-hidden="true"></span>
+											<span class="screen-reader-text"><?php echo esc_html(sprintf( /* translators: %s: field label. */ __('Show %s', 'leads-collector'), $label)); ?></span>
+										</label>
+										<label class="lc-switch">
+											<input type="checkbox" class="lc-required" name="<?php echo esc_attr($name); ?>[required][]" value="<?php echo esc_attr($field); ?>" <?php checked(in_array($field, $settings['required'], true) || $is_locked); ?> <?php disabled($is_locked); ?>>
+											<span class="lc-switch-ui" aria-hidden="true"></span>
+											<span class="screen-reader-text"><?php echo esc_html(sprintf( /* translators: %s: field label. */ __('%s is required', 'leads-collector'), $label)); ?></span>
+										</label>
+										<span class="lc-seg" role="radiogroup" aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('Width of %s', 'leads-collector'), $label)); ?>">
+											<label><input type="radio" class="lc-width" name="<?php echo esc_attr($name); ?>[width][<?php echo esc_attr($field); ?>]" value="half" <?php checked(! $is_full); ?> <?php disabled($always_full); ?>><span><?php esc_html_e('Half', 'leads-collector'); ?></span></label>
+											<label><input type="radio" class="lc-width" name="<?php echo esc_attr($name); ?>[width][<?php echo esc_attr($field); ?>]" value="full" <?php checked($is_full); ?> <?php disabled($always_full); ?>><span><?php esc_html_e('Full', 'leads-collector'); ?></span></label>
+										</span>
+									</div>
 								<?php } ?>
-								</tbody>
-							</table>
-							<small class="lc-muted"><?php esc_html_e('Name and phone are always shown and required: Lead Manager needs them.', 'leads-collector'); ?></small>
-							<small class="lc-muted"><?php esc_html_e('Width: two "Half" fields in a row share one line; "Full width" takes the whole line. The message box is always full width, and phones always show one field per line.', 'leads-collector'); ?></small>
+							</div>
+							<p class="lc-hint"><?php esc_html_e('Name and phone are always on: Lead Manager needs them. Two "Half" fields next to each other share a line; the message box always takes the full line, and phones show one field per line.', 'leads-collector'); ?></p>
+
+							<h3 class="lc-label"><?php esc_html_e('Style and text', 'leads-collector'); ?></h3>
+							<div class="lc-grid lc-grid-tight">
+								<div class="lc-field">
+									<span><?php esc_html_e('Button and accent color', 'leads-collector'); ?></span>
+									<div class="lc-color">
+										<input type="color" id="lc-color" name="<?php echo esc_attr($name); ?>[color]" value="<?php echo esc_attr($settings['color']); ?>">
+										<input type="text" id="lc-color-hex" value="<?php echo esc_attr($settings['color']); ?>" maxlength="7" spellcheck="false" aria-label="<?php esc_attr_e('Color code', 'leads-collector'); ?>">
+									</div>
+								</div>
+								<label class="lc-field">
+									<span><?php esc_html_e('Button text', 'leads-collector'); ?></span>
+									<input type="text" id="lc-button-text" name="<?php echo esc_attr($name); ?>[button_text]" value="<?php echo esc_attr($settings['button_text']); ?>" maxlength="60">
+								</label>
+								<label class="lc-field">
+									<span><?php esc_html_e('Message after sending', 'leads-collector'); ?></span>
+									<input type="text" id="lc-success" name="<?php echo esc_attr($name); ?>[success_message]" value="<?php echo esc_attr($settings['success_message']); ?>" maxlength="255">
+								</label>
+								<label class="lc-field">
+									<span><?php esc_html_e('Form name in Lead Manager', 'leads-collector'); ?></span>
+									<input type="text" name="<?php echo esc_attr($name); ?>[form_label]" value="<?php echo esc_attr($settings['form_label']); ?>" maxlength="100">
+								</label>
+							</div>
 						</div>
 
-						<div class="lc-stack">
-							<input type="hidden" name="<?php echo esc_attr($name); ?>[columns]" value="2">
-							<label class="lc-field">
-								<span><?php esc_html_e('Button and accent color', 'leads-collector'); ?></span>
-								<input type="color" name="<?php echo esc_attr($name); ?>[color]" value="<?php echo esc_attr($settings['color']); ?>">
-							</label>
-							<label class="lc-field">
-								<span><?php esc_html_e('Button text', 'leads-collector'); ?></span>
-								<input type="text" name="<?php echo esc_attr($name); ?>[button_text]" value="<?php echo esc_attr($settings['button_text']); ?>" maxlength="60">
-							</label>
-							<label class="lc-field">
-								<span><?php esc_html_e('Message after sending', 'leads-collector'); ?></span>
-								<input type="text" name="<?php echo esc_attr($name); ?>[success_message]" value="<?php echo esc_attr($settings['success_message']); ?>" maxlength="255">
-							</label>
-							<label class="lc-field">
-								<span><?php esc_html_e('Form name in Lead Manager', 'leads-collector'); ?></span>
-								<input type="text" name="<?php echo esc_attr($name); ?>[form_label]" value="<?php echo esc_attr($settings['form_label']); ?>" maxlength="100">
-							</label>
-						</div>
+						<aside class="lc-preview" aria-label="<?php esc_attr_e('Form preview', 'leads-collector'); ?>">
+							<div class="lc-preview-bar">
+								<span class="lc-label"><?php esc_html_e('Live preview', 'leads-collector'); ?></span>
+								<span class="lc-preview-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+							</div>
+							<div class="lc-preview-body">
+								<div class="lc-mock" id="lc-mock"></div>
+								<p class="lc-mock-success" id="lc-mock-success"></p>
+							</div>
+						</aside>
 					</div>
 				</section>
 
-				<?php submit_button(__('Save settings', 'leads-collector')); ?>
+				<div class="lc-savebar">
+					<span class="lc-save-state" id="lc-save-state"><?php esc_html_e('All changes saved', 'leads-collector'); ?></span>
+					<button type="submit" class="lc-btn lc-btn-primary lc-btn-lg"><?php esc_html_e('Save settings', 'leads-collector'); ?></button>
+				</div>
 			</form>
 
 			<section class="lc-card">
-				<h2><?php esc_html_e('3. Add a form', 'leads-collector'); ?></h2>
-				<ul class="lc-ways">
-					<li><strong><?php esc_html_e('Block editor:', 'leads-collector'); ?></strong> <?php esc_html_e('add the “Leads Collector Form” block and change its look in the sidebar.', 'leads-collector'); ?></li>
-					<li><strong><?php esc_html_e('Elementor:', 'leads-collector'); ?></strong> <?php esc_html_e('drag the “Leads Collector Form” widget onto the page; it works in popups too.', 'leads-collector'); ?></li>
-					<li><strong><?php esc_html_e('Anywhere else:', 'leads-collector'); ?></strong> <?php esc_html_e('paste a shortcode.', 'leads-collector'); ?></li>
-				</ul>
-				<?php
-                $shortcode = '[leads_collector_form]';
-        ?>
-				<div class="lc-code"><code><?php echo esc_html($shortcode); ?></code><button type="button" class="button-link lc-copy" data-copy="<?php echo esc_attr($shortcode); ?>"><?php esc_html_e('Copy', 'leads-collector'); ?></button></div>
-				<p class="lc-muted"><?php esc_html_e('The form uses the design above.', 'leads-collector'); ?></p>
-				<p class="lc-muted"><?php esc_html_e('Call clicks: every phone link (tel:) on the site is tracked automatically. Add data-call-label="Header call button" to a link to name it.', 'leads-collector'); ?></p>
+				<div class="lc-card-head">
+					<span class="lc-step">3</span>
+					<div>
+						<h2><?php esc_html_e('Add the form to a page', 'leads-collector'); ?></h2>
+						<p class="lc-muted"><?php esc_html_e('Pick whichever fits the page. All three show the design above.', 'leads-collector'); ?></p>
+					</div>
+				</div>
+				<div class="lc-ways">
+					<div class="lc-way">
+						<span class="dashicons dashicons-block-default" aria-hidden="true"></span>
+						<strong><?php esc_html_e('Block editor', 'leads-collector'); ?></strong>
+						<span class="lc-muted"><?php esc_html_e('Add the “Leads Collector Form” block.', 'leads-collector'); ?></span>
+					</div>
+					<div class="lc-way">
+						<span class="dashicons dashicons-welcome-widgets-menus" aria-hidden="true"></span>
+						<strong><?php esc_html_e('Elementor', 'leads-collector'); ?></strong>
+						<span class="lc-muted"><?php esc_html_e('Drag in the “Leads Collector Form” widget. Works in popups too.', 'leads-collector'); ?></span>
+					</div>
+					<div class="lc-way">
+						<span class="dashicons dashicons-shortcode" aria-hidden="true"></span>
+						<strong><?php esc_html_e('Shortcode', 'leads-collector'); ?></strong>
+						<span class="lc-muted"><?php esc_html_e('Paste it anywhere else.', 'leads-collector'); ?></span>
+					</div>
+				</div>
+				<div class="lc-code"><code><?php echo esc_html($shortcode); ?></code><button type="button" class="lc-btn lc-btn-ghost lc-btn-sm lc-copy" data-copy="<?php echo esc_attr($shortcode); ?>"><?php esc_html_e('Copy', 'leads-collector'); ?></button></div>
+				<p class="lc-hint"><span class="dashicons dashicons-phone" aria-hidden="true"></span> <?php esc_html_e('Call clicks: every phone link (tel:) on the site is tracked automatically. Add data-call-label="Header call button" to a link to name it.', 'leads-collector'); ?></p>
 			</section>
 		</div>
 		<?php
