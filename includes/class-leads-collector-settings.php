@@ -42,8 +42,24 @@ final class Leads_Collector_Settings
             'name' => __('Name', 'leads-collector'),
             'email' => __('Email', 'leads-collector'),
             'phone' => __('Phone', 'leads-collector'),
-            'model_number' => __('Model number', 'leads-collector'),
+            'model_number' => __('Vehicle year, make & model', 'leads-collector'),
             'message' => __('Message', 'leads-collector'),
+        ];
+    }
+
+    /**
+     * Translated placeholder text keyed by field name.
+     *
+     * @return array<string, string>
+     */
+    public static function field_placeholders(): array
+    {
+        return [
+            'name' => __('Your name', 'leads-collector'),
+            'email' => 'you@example.com',
+            'phone' => '(713) 555-0123',
+            'model_number' => __('e.g. 2021 Toyota Camry', 'leads-collector'),
+            'message' => __('How can we help?', 'leads-collector'),
         ];
     }
 

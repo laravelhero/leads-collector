@@ -61,6 +61,15 @@ final class Leads_Collector_Form
             'data-lead-source' => in_array($source, Leads_Collector_Settings::SOURCES, true) ? $source : '',
         ];
 
+        // The Lead Manager script has its own wording; send ours so the live form matches this plugin.
+        $labels = Leads_Collector_Settings::field_labels();
+        $placeholders = Leads_Collector_Settings::field_placeholders();
+
+        foreach ($fields as $field) {
+            $attributes['data-label-'.$field] = isset($labels[$field]) ? $labels[$field] : '';
+            $attributes['data-placeholder-'.$field] = isset($placeholders[$field]) ? $placeholders[$field] : '';
+        }
+
         $html = '';
 
         foreach ($attributes as $name => $attribute_value) {

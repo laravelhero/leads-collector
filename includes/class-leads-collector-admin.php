@@ -71,13 +71,7 @@ final class Leads_Collector_Admin
                 'unsaved' => __('You have unsaved changes', 'leads-collector'),
                 'saved' => __('All changes saved', 'leads-collector'),
                 'labels' => Leads_Collector_Settings::field_labels(),
-                'placeholders' => [
-                    'name' => __('Your name', 'leads-collector'),
-                    'email' => 'you@example.com',
-                    'phone' => '(713) 555-0123',
-                    'model_number' => __('Model number', 'leads-collector'),
-                    'message' => __('How can we help?', 'leads-collector'),
-                ],
+                'placeholders' => Leads_Collector_Settings::field_placeholders(),
             ]
         );
     }
