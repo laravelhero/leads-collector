@@ -42,6 +42,7 @@ final class Leads_Collector_Block
                         'fields' => $settings['fields'],
                         'required' => $settings['required'],
                         'columns' => (int) $settings['columns'],
+                        'full' => Leads_Collector_Settings::sanitize_full($settings['full']),
                         'color' => $settings['color'],
                         'buttonText' => $settings['button_text'],
                         'successMessage' => $settings['success_message'],

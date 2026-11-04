@@ -179,6 +179,7 @@ final class Leads_Collector_Admin
         $name = Leads_Collector_Settings::OPTION;
         $labels = Leads_Collector_Settings::field_labels();
         $locked = Leads_Collector_Settings::ALWAYS_REQUIRED;
+        $full = Leads_Collector_Settings::sanitize_full($settings['full']);
         ?>
 		<div class="wrap lc-admin">
 			<header class="lc-header">
@@ -224,32 +225,35 @@ final class Leads_Collector_Admin
 							<span><?php esc_html_e('Fields', 'leads-collector'); ?></span>
 							<table class="lc-fields">
 								<thead>
-									<tr><th><?php esc_html_e('Field', 'leads-collector'); ?></th><th><?php esc_html_e('Show', 'leads-collector'); ?></th><th><?php esc_html_e('Required', 'leads-collector'); ?></th></tr>
+									<tr><th><?php esc_html_e('Field', 'leads-collector'); ?></th><th><?php esc_html_e('Show', 'leads-collector'); ?></th><th><?php esc_html_e('Required', 'leads-collector'); ?></th><th class="lc-width-head"><?php esc_html_e('Width', 'leads-collector'); ?></th></tr>
 								</thead>
 								<tbody>
 								<?php foreach ($labels as $field => $label) { ?>
-									<?php $is_locked = in_array($field, $locked, true); ?>
+									<?php
+                                    $is_locked = in_array($field, $locked, true);
+                                    $always_full = in_array($field, Leads_Collector_Settings::ALWAYS_FULL, true);
+                                    $is_full = in_array($field, $full, true);
+                                    ?>
 									<tr>
 										<td><?php echo esc_html($label); ?></td>
 										<td><input type="checkbox" name="<?php echo esc_attr($name); ?>[fields][]" value="<?php echo esc_attr($field); ?>" <?php checked(in_array($field, $settings['fields'], true) || $is_locked); ?> <?php disabled($is_locked); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('Show %s', 'leads-collector'), $label)); ?>"></td>
 										<td><input type="checkbox" name="<?php echo esc_attr($name); ?>[required][]" value="<?php echo esc_attr($field); ?>" <?php checked(in_array($field, $settings['required'], true) || $is_locked); ?> <?php disabled($is_locked); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('%s is required', 'leads-collector'), $label)); ?>"></td>
+										<td class="lc-width">
+											<select name="<?php echo esc_attr($name); ?>[width][<?php echo esc_attr($field); ?>]" <?php disabled($always_full); ?> aria-label="<?php echo esc_attr(sprintf( /* translators: %s: field label. */ __('Width of %s', 'leads-collector'), $label)); ?>">
+												<option value="half" <?php selected(! $is_full); ?>><?php esc_html_e('Half', 'leads-collector'); ?></option>
+												<option value="full" <?php selected($is_full); ?>><?php esc_html_e('Full width', 'leads-collector'); ?></option>
+											</select>
+										</td>
 									</tr>
 								<?php } ?>
 								</tbody>
 							</table>
 							<small class="lc-muted"><?php esc_html_e('Name and phone are always shown and required: Lead Manager needs them.', 'leads-collector'); ?></small>
+							<small class="lc-muted"><?php esc_html_e('Width: two "Half" fields in a row share one line; "Full width" takes the whole line. The message box is always full width, and phones always show one field per line.', 'leads-collector'); ?></small>
 						</div>
 
 						<div class="lc-stack">
-							<div class="lc-field">
-								<span><?php esc_html_e('Columns', 'leads-collector'); ?></span>
-								<div class="lc-segmented">
-									<?php foreach ([1, 2, 3] as $columns) { ?>
-										<label><input type="radio" name="<?php echo esc_attr($name); ?>[columns]" value="<?php echo esc_attr((string) $columns); ?>" <?php checked((int) $settings['columns'], $columns); ?>><span><?php echo esc_html((string) $columns); ?></span></label>
-									<?php } ?>
-								</div>
-								<small class="lc-muted"><?php esc_html_e('Phones always get one column.', 'leads-collector'); ?></small>
-							</div>
+							<input type="hidden" name="<?php echo esc_attr($name); ?>[columns]" value="2">
 							<label class="lc-field">
 								<span><?php esc_html_e('Button and accent color', 'leads-collector'); ?></span>
 								<input type="color" name="<?php echo esc_attr($name); ?>[color]" value="<?php echo esc_attr($settings['color']); ?>">
@@ -281,16 +285,10 @@ final class Leads_Collector_Admin
 					<li><strong><?php esc_html_e('Anywhere else:', 'leads-collector'); ?></strong> <?php esc_html_e('paste a shortcode.', 'leads-collector'); ?></li>
 				</ul>
 				<?php
-                $shortcodes = [
-                    '[leads_collector_form]',
-                    '[leads_collector_form label="Homepage quote form" columns="2" color="#16a34a" button_text="Get my free quote"]',
-                    '[leads_collector_form label="Sidebar form" fields="name,phone,message" columns="1"]',
-                ];
-        foreach ($shortcodes as $shortcode) {
-            ?>
-					<div class="lc-code"><code><?php echo esc_html($shortcode); ?></code><button type="button" class="button-link lc-copy" data-copy="<?php echo esc_attr($shortcode); ?>"><?php esc_html_e('Copy', 'leads-collector'); ?></button></div>
-				<?php } ?>
-				<p class="lc-muted"><?php esc_html_e('Shortcode options: label, fields, required, columns (1–3), full (fields that take a whole row), color, button_text, success_message, redirect, source (page, post, popup or other).', 'leads-collector'); ?></p>
+                $shortcode = '[leads_collector_form]';
+        ?>
+				<div class="lc-code"><code><?php echo esc_html($shortcode); ?></code><button type="button" class="button-link lc-copy" data-copy="<?php echo esc_attr($shortcode); ?>"><?php esc_html_e('Copy', 'leads-collector'); ?></button></div>
+				<p class="lc-muted"><?php esc_html_e('The form uses the design above.', 'leads-collector'); ?></p>
 				<p class="lc-muted"><?php esc_html_e('Call clicks: every phone link (tel:) on the site is tracked automatically. Add data-call-label="Header call button" to a link to name it.', 'leads-collector'); ?></p>
 			</section>
 		</div>

@@ -135,6 +135,20 @@
 	text-align: center;
 }
 
+.lc-admin .lc-fields th.lc-width-head,
+.lc-admin .lc-fields td.lc-width {
+	width: 130px;
+}
+
+.lc-admin .lc-fields td.lc-width select {
+	width: 100%;
+	max-width: 120px;
+}
+
+.lc-admin .lc-field small + small {
+	margin-top: 4px;
+}
+
 .lc-admin .lc-fields tr:last-child td {
 	border-bottom: 0;
 }

@@ -36,16 +36,39 @@
 		var required = current( attributes, 'required' );
 		var columns = current( attributes, 'columns' );
 		var color = current( attributes, 'color' );
-		var half = fields.filter( function ( field ) {
-			return field !== 'message';
+		var full = config.defaults.full || [ 'message' ];
+		var isFull = function ( field ) {
+			return columns === 1 || field === 'message' || full.indexOf( field ) !== -1;
+		};
+		// a run of half-width fields that does not fill its last row lets that last field take the whole row
+		var runs = [];
+		var run = [];
+
+		fields.forEach( function ( field ) {
+			if ( isFull( field ) ) {
+				if ( run.length ) {
+					runs.push( run );
+				}
+				run = [];
+			} else {
+				run.push( field );
+			}
 		} );
 
-		var inputs = fields.map( function ( field, index ) {
-			var isLastOddHalf = field !== 'message' && half.indexOf( field ) === half.length - 1 && half.length % columns !== 0;
+		if ( run.length ) {
+			runs.push( run );
+		}
 
+		var stretched = runs.filter( function ( r ) {
+			return r.length % columns !== 0;
+		} ).map( function ( r ) {
+			return r[ r.length - 1 ];
+		} );
+
+		var inputs = fields.map( function ( field ) {
 			return el(
 				'div',
-				{ key: field, style: { gridColumn: field === 'message' || isLastOddHalf || columns === 1 ? '1 / -1' : 'auto', display: 'grid', gap: '6px' } },
+				{ key: field, style: { gridColumn: isFull( field ) || stretched.indexOf( field ) !== -1 ? '1 / -1' : 'auto', display: 'grid', gap: '6px' } },
 				el( 'span', { style: { fontSize: '14px', fontWeight: 600 } }, config.labels[ field ], required.indexOf( field ) !== -1 ? el( 'span', { style: { color: '#e11d48' } }, ' *' ) : null ),
 				el( 'div', { style: { minHeight: field === 'message' ? '110px' : '46px', border: '1px solid #d0d5dd', borderRadius: '10px', background: '#fff' } } )
 			);

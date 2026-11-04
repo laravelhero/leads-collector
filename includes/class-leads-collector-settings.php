@@ -24,6 +24,11 @@ final class Leads_Collector_Settings
      */
     const ALWAYS_REQUIRED = ['name', 'phone'];
 
+    /**
+     * Fields that always take a whole row (the message box is too tall to share one).
+     */
+    const ALWAYS_FULL = ['message'];
+
     const SOURCES = ['page', 'post', 'popup', 'other'];
 
     /**
@@ -57,6 +62,7 @@ final class Leads_Collector_Settings
             'fields' => ['name', 'email', 'phone', 'message'],
             'required' => ['name', 'email', 'phone'],
             'columns' => 2,
+            'full' => ['name', 'model_number', 'message'],
             'color' => '#2563eb',
             'button_text' => 'Send',
             'success_message' => 'Thanks! We will contact you shortly.',
@@ -187,6 +193,40 @@ final class Leads_Collector_Settings
     }
 
     /**
+     * Full-width fields, in display order, always including the ones that never share a row.
+     *
+     * @param  mixed  $value  Array or comma-separated string.
+     * @return string[]
+     */
+    public static function sanitize_full($value): array
+    {
+        $list = is_array($value) ? $value : explode(',', (string) $value);
+        $list = array_map('sanitize_key', array_map('trim', array_map('strval', $list)));
+
+        return array_values(array_intersect(self::FIELDS, array_merge($list, self::ALWAYS_FULL)));
+    }
+
+    /**
+     * Read the per-field width choices from the settings page: field => "half" or "full".
+     *
+     * @param  mixed  $value  Raw input.
+     * @return string[]
+     */
+    public static function full_from_widths($value): array
+    {
+        $widths = is_array($value) ? $value : [];
+        $full = [];
+
+        foreach (self::FIELDS as $field) {
+            if (isset($widths[$field]) && $widths[$field] === 'full') {
+                $full[] = $field;
+            }
+        }
+
+        return self::sanitize_full($full);
+    }
+
+    /**
      * @param  mixed  $value  Raw input.
      */
     public static function sanitize_columns($value): int
@@ -241,6 +281,7 @@ final class Leads_Collector_Settings
             'form_label' => self::text($input, 'form_label', $defaults['form_label'], 100),
             'fields' => self::sanitize_fields(isset($input['fields']) ? $input['fields'] : []),
             'columns' => self::sanitize_columns(isset($input['columns']) ? $input['columns'] : 2),
+            'full' => isset($input['width']) ? self::full_from_widths($input['width']) : self::sanitize_full(isset($input['full']) ? $input['full'] : $defaults['full']),
             'color' => sanitize_hex_color(isset($input['color']) ? $input['color'] : ''),
             'button_text' => self::text($input, 'button_text', $defaults['button_text'], 60),
             'success_message' => self::text($input, 'success_message', $defaults['success_message'], 255),

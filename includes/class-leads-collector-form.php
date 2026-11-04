@@ -41,7 +41,7 @@ final class Leads_Collector_Form
 
         $fields = Leads_Collector_Settings::sanitize_fields($value('fields') !== null ? $value('fields') : $settings['fields']);
         $required = Leads_Collector_Settings::sanitize_fields($value('required') !== null ? $value('required') : $settings['required']);
-        $full = $value('full') !== null ? array_values(array_intersect(Leads_Collector_Settings::FIELDS, self::listed($value('full')))) : [];
+        $full = Leads_Collector_Settings::sanitize_full($value('full') !== null ? self::listed($value('full')) : $settings['full']);
         $color = sanitize_hex_color((string) ($value('color') !== null ? $value('color') : $settings['color']));
         $source = sanitize_key((string) $value('source'));
         $redirect = $value('redirect') !== null ? esc_url_raw((string) $value('redirect')) : '';
@@ -53,7 +53,7 @@ final class Leads_Collector_Form
             'data-fields' => implode(',', $fields),
             'data-required' => implode(',', array_intersect($required, $fields)),
             'data-columns' => (string) Leads_Collector_Settings::sanitize_columns($value('columns') !== null ? $value('columns') : $settings['columns']),
-            'data-full' => implode(',', array_merge(['message'], $full)),
+            'data-full' => implode(',', $full),
             'data-color' => $color ? $color : '',
             'data-button-text' => self::text($value('button_text') !== null ? $value('button_text') : $settings['button_text']),
             'data-success-message' => self::text($value('success_message') !== null ? $value('success_message') : $settings['success_message']),
