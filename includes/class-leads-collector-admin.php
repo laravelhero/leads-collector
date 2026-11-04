@@ -217,7 +217,7 @@ final class Leads_Collector_Admin
 				</div>
 			</header>
 
-			<?php if (current_user_can('update_plugins')) { ?>
+			<?php if (current_user_can('manage_options')) { ?>
 				<?php $update = Leads_Collector_Updater::status(); ?>
 				<section class="lc-banner lc-updates" id="lc-updates" data-plugin="<?php echo esc_attr($update['plugin']); ?>" data-slug="<?php echo esc_attr($update['slug']); ?>">
 					<span class="lc-banner-icon dashicons dashicons-update" aria-hidden="true"></span>
@@ -228,7 +228,9 @@ final class Leads_Collector_Admin
 					<div class="lc-updates-actions">
 						<a class="lc-link" href="<?php echo esc_url($update['releaseUrl']); ?>" target="_blank" rel="noopener"><?php esc_html_e('Release notes', 'leads-collector'); ?></a>
 						<button type="button" class="lc-btn lc-btn-ghost" id="lc-check-update"><?php esc_html_e('Check for updates', 'leads-collector'); ?></button>
-						<button type="button" class="lc-btn lc-btn-primary" id="lc-run-update" <?php echo $update['hasUpdate'] ? '' : 'hidden'; ?>><?php esc_html_e('Update now', 'leads-collector'); ?></button>
+						<?php if ($update['canInstall']) { ?>
+							<button type="button" class="lc-btn lc-btn-primary" id="lc-run-update" <?php echo $update['hasUpdate'] ? '' : 'hidden'; ?>><?php esc_html_e('Update now', 'leads-collector'); ?></button>
+						<?php } ?>
 					</div>
 				</section>
 			<?php } ?>

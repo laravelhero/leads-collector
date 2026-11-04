@@ -63,7 +63,8 @@
 		} );
 	}
 
-	if ( updates && checkButton && runButton && updateResult && config ) {
+	// No "Update now" button where the host installs updates; checking still works.
+	if ( updates && checkButton && updateResult && config ) {
 		checkButton.addEventListener( 'click', function () {
 			checkButton.disabled = true;
 			updateMessage( config.checking );
@@ -73,7 +74,9 @@
 					var data = json && json.data ? json.data : {};
 
 					updateMessage( data.message || config.failed, json && json.success ? ( data.hasUpdate ? 'warn' : 'ok' ) : 'error' );
-					runButton.hidden = ! ( json && json.success && data.hasUpdate );
+					if ( runButton ) {
+						runButton.hidden = ! ( json && json.success && data.hasUpdate );
+					}
 				} )
 				.catch( function () {
 					updateMessage( config.failed, 'error' );
@@ -83,6 +86,9 @@
 				} );
 		} );
 
+	}
+
+	if ( updates && checkButton && runButton && updateResult && config ) {
 		runButton.addEventListener( 'click', function () {
 			checkButton.disabled = true;
 			runButton.disabled = true;

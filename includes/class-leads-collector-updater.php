@@ -46,8 +46,10 @@ final class Leads_Collector_Updater
     {
         check_ajax_referer('leads_collector_update');
 
-        if (! current_user_can('update_plugins')) {
-            wp_send_json_error(['message' => __('You are not allowed to update plugins.', 'leads-collector')], 403);
+        // Checking only reads GitHub, so every admin of the settings page may do it, including
+        // on hosts where plugin files are shared and updates are installed by the host.
+        if (! current_user_can('manage_options')) {
+            wp_send_json_error(['message' => __('You are not allowed to check for updates.', 'leads-collector')], 403);
         }
 
         self::forget();
@@ -57,9 +59,11 @@ final class Leads_Collector_Updater
             wp_send_json_error(['message' => __('Could not reach GitHub. Try again in a minute.', 'leads-collector')]);
         }
 
-        // Rebuild WordPress's list of plugin updates so the new version can be installed right away.
-        delete_site_transient('update_plugins');
-        wp_update_plugins();
+        if (current_user_can('update_plugins')) {
+            // Rebuild WordPress's list of plugin updates so the new version can be installed right away.
+            delete_site_transient('update_plugins');
+            wp_update_plugins();
+        }
 
         wp_send_json_success(self::status($release));
     }
@@ -79,9 +83,13 @@ final class Leads_Collector_Updater
 
         $latest = $release ? $release['version'] : '';
         $has_update = $latest !== '' && version_compare($latest, LEADS_COLLECTOR_VERSION, '>');
+        $can_install = current_user_can('update_plugins');
 
         if ($latest === '') {
             $message = __('Click "Check for updates" to look for a new version.', 'leads-collector');
+        } elseif ($has_update && ! $can_install) {
+            /* translators: %s: version number. */
+            $message = sprintf(__('Version %s is available. Plugin updates on this site are installed by your hosting provider.', 'leads-collector'), $latest);
         } elseif ($has_update) {
             /* translators: %s: version number. */
             $message = sprintf(__('Version %s is available.', 'leads-collector'), $latest);
@@ -93,6 +101,7 @@ final class Leads_Collector_Updater
             'installed' => LEADS_COLLECTOR_VERSION,
             'latest' => $latest,
             'hasUpdate' => $has_update,
+            'canInstall' => $can_install,
             'message' => $message,
             'releaseUrl' => $release ? $release['url'] : 'https://github.com/'.self::REPOSITORY.'/releases',
             'plugin' => plugin_basename(LEADS_COLLECTOR_FILE),

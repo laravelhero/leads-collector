@@ -4,7 +4,7 @@
  * Plugin Name:       Leads Collector
  * Plugin URI:        https://github.com/laravelhero/leads-collector
  * Description:       Connects this site to Lead Manager: modern lead forms (shortcode, block and Elementor widget) and automatic call-click tracking.
- * Version:           1.4.0
+ * Version:           1.4.1
  * Requires at least: 6.3
  * Requires PHP:      7.4
  * Author:            Abu Taher Hero
@@ -15,7 +15,7 @@
  */
 defined('ABSPATH') || exit;
 
-define('LEADS_COLLECTOR_VERSION', '1.4.0');
+define('LEADS_COLLECTOR_VERSION', '1.4.1');
 define('LEADS_COLLECTOR_FILE', __FILE__);
 define('LEADS_COLLECTOR_DIR', plugin_dir_path(__FILE__));
 define('LEADS_COLLECTOR_URL', plugin_dir_url(__FILE__));
