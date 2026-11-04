@@ -246,3 +246,33 @@
 .lc-admin .lc-card p.lc-muted {
 	margin-top: 8px;
 }
+
+.lc-admin .lc-updates {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 16px 24px;
+}
+
+.lc-admin .lc-updates h2 {
+	margin-top: 0;
+}
+
+.lc-admin .lc-updates p {
+	margin: 4px 0 0;
+}
+
+.lc-admin .lc-updates-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+
+.lc-admin .lc-updates-actions [hidden] {
+	display: none;
+}
+
+.lc-admin .lc-test-result.is-warn {
+	color: #b54708;
+}

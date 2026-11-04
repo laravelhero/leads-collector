@@ -40,6 +40,81 @@
 		} );
 	}
 
+	// Plugin updates: ask GitHub now, then install with WordPress's own updater.
+	var updates = document.getElementById( 'lc-updates' );
+	var checkButton = document.getElementById( 'lc-check-update' );
+	var runButton = document.getElementById( 'lc-run-update' );
+	var updateResult = document.getElementById( 'lc-update-result' );
+
+	function updateMessage( message, state ) {
+		updateResult.textContent = message;
+		updateResult.className = 'lc-test-result' + ( state ? ' is-' + state : '' );
+	}
+
+	function post( fields ) {
+		var body = new FormData();
+
+		Object.keys( fields ).forEach( function ( key ) {
+			body.append( key, fields[ key ] );
+		} );
+
+		return fetch( config.ajaxUrl, { method: 'POST', body: body, credentials: 'same-origin' } ).then( function ( response ) {
+			return response.json();
+		} );
+	}
+
+	if ( updates && checkButton && runButton && updateResult && config ) {
+		checkButton.addEventListener( 'click', function () {
+			checkButton.disabled = true;
+			updateMessage( config.checking );
+
+			post( { action: 'leads_collector_check_update', _ajax_nonce: config.updateNonce } )
+				.then( function ( json ) {
+					var data = json && json.data ? json.data : {};
+
+					updateMessage( data.message || config.failed, json && json.success ? ( data.hasUpdate ? 'warn' : 'ok' ) : 'error' );
+					runButton.hidden = ! ( json && json.success && data.hasUpdate );
+				} )
+				.catch( function () {
+					updateMessage( config.failed, 'error' );
+				} )
+				.then( function () {
+					checkButton.disabled = false;
+				} );
+		} );
+
+		runButton.addEventListener( 'click', function () {
+			checkButton.disabled = true;
+			runButton.disabled = true;
+			updateMessage( config.updating );
+
+			post( {
+				action: 'update-plugin',
+				_ajax_nonce: config.updatesNonce,
+				plugin: updates.getAttribute( 'data-plugin' ),
+				slug: updates.getAttribute( 'data-slug' ),
+			} )
+				.then( function ( json ) {
+					if ( json && json.success ) {
+						updateMessage( config.updated, 'ok' );
+						setTimeout( function () {
+							window.location.reload();
+						}, 1200 );
+						return;
+					}
+
+					updateMessage( json && json.data && json.data.errorMessage ? json.data.errorMessage : config.updateFailed, 'error' );
+					checkButton.disabled = false;
+					runButton.disabled = false;
+				} )
+				.catch( function () {
+					updateMessage( config.updateFailed, 'error' );
+					checkButton.disabled = false;
+					runButton.disabled = false;
+				} );
+		} );
+	}
+
 	document.addEventListener( 'click', function ( event ) {
 		var copy = event.target.closest ? event.target.closest( '.lc-copy' ) : null;
 

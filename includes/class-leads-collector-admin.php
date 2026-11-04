@@ -59,6 +59,12 @@ final class Leads_Collector_Admin
             [
                 'ajaxUrl' => admin_url('admin-ajax.php'),
                 'nonce' => wp_create_nonce('leads_collector_test'),
+                'updateNonce' => wp_create_nonce('leads_collector_update'),
+                'updatesNonce' => wp_create_nonce('updates'),
+                'checking' => __('Checking…', 'leads-collector'),
+                'updating' => __('Updating…', 'leads-collector'),
+                'updated' => __('Updated. Reloading…', 'leads-collector'),
+                'updateFailed' => __('The update did not finish. Open Dashboard → Updates to try there.', 'leads-collector'),
                 'testing' => __('Testing…', 'leads-collector'),
                 'copied' => __('Copied', 'leads-collector'),
                 'failed' => __('The test could not run. Please try again.', 'leads-collector'),
@@ -191,6 +197,27 @@ final class Leads_Collector_Admin
 					<?php echo Leads_Collector_Settings::is_connected() ? esc_html__('Active', 'leads-collector') : esc_html__('Not set up', 'leads-collector'); ?>
 				</span>
 			</header>
+
+			<?php if (current_user_can('update_plugins')) { ?>
+				<?php $update = Leads_Collector_Updater::status(); ?>
+				<section class="lc-card lc-updates" id="lc-updates" data-plugin="<?php echo esc_attr($update['plugin']); ?>" data-slug="<?php echo esc_attr($update['slug']); ?>">
+					<div class="lc-updates-text">
+						<h2><?php esc_html_e('Plugin updates', 'leads-collector'); ?></h2>
+						<p class="lc-muted">
+							<?php
+                            /* translators: %s: version number. */
+                            echo esc_html(sprintf(__('Installed version: %s', 'leads-collector'), LEADS_COLLECTOR_VERSION));
+                ?>
+							· <a href="<?php echo esc_url($update['releaseUrl']); ?>" target="_blank" rel="noopener"><?php esc_html_e('Release notes', 'leads-collector'); ?></a>
+						</p>
+						<p id="lc-update-result" class="lc-test-result<?php echo $update['hasUpdate'] ? ' is-warn' : ''; ?>" role="status" aria-live="polite"><?php echo esc_html($update['message']); ?></p>
+					</div>
+					<div class="lc-updates-actions">
+						<button type="button" class="button" id="lc-check-update"><?php esc_html_e('Check for updates', 'leads-collector'); ?></button>
+						<button type="button" class="button button-primary" id="lc-run-update" <?php echo $update['hasUpdate'] ? '' : 'hidden'; ?>><?php esc_html_e('Update now', 'leads-collector'); ?></button>
+					</div>
+				</section>
+			<?php } ?>
 
 			<form method="post" action="options.php" class="lc-form-settings">
 				<?php settings_fields('leads_collector'); ?>

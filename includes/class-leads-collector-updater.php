@@ -31,8 +31,108 @@ final class Leads_Collector_Updater
         // WordPress asks this filter because the plugin header has "Update URI: https://github.com/...".
         add_filter('update_plugins_github.com', [__CLASS__, 'check'], 10, 3);
         add_filter('plugins_api', [__CLASS__, 'details'], 10, 3);
-        add_action('load-update-core.php', [__CLASS__, 'forget_on_force_check']);
+        // Before WordPress's own check on the same screen (priority 10), so "Check again" asks GitHub afresh.
+        add_action('load-update-core.php', [__CLASS__, 'forget_on_force_check'], 1);
         add_action('upgrader_process_complete', [__CLASS__, 'forget'], 10, 0);
+        add_filter('upgrader_source_selection', [__CLASS__, 'keep_folder_name'], 10, 4);
+        add_action('wp_ajax_leads_collector_check_update', [__CLASS__, 'ajax_check']);
+    }
+
+    /**
+     * The settings page "Check for updates" button: ask GitHub now, refresh WordPress's
+     * update list and say whether a newer version can be installed.
+     */
+    public static function ajax_check(): void
+    {
+        check_ajax_referer('leads_collector_update');
+
+        if (! current_user_can('update_plugins')) {
+            wp_send_json_error(['message' => __('You are not allowed to update plugins.', 'leads-collector')], 403);
+        }
+
+        self::forget();
+        $release = self::latest_release();
+
+        if (! $release) {
+            wp_send_json_error(['message' => __('Could not reach GitHub. Try again in a minute.', 'leads-collector')]);
+        }
+
+        // Rebuild WordPress's list of plugin updates so the new version can be installed right away.
+        delete_site_transient('update_plugins');
+        wp_update_plugins();
+
+        wp_send_json_success(self::status($release));
+    }
+
+    /**
+     * Installed and latest version, for the settings page.
+     *
+     * @param  array<string, string>|null  $release  Latest release, or null to use the cached one only.
+     * @return array<string, mixed>
+     */
+    public static function status(?array $release = null): array
+    {
+        if ($release === null) {
+            $cached = get_site_transient(self::CACHE_KEY);
+            $release = is_array($cached) && isset($cached['version']) ? $cached : null;
+        }
+
+        $latest = $release ? $release['version'] : '';
+        $has_update = $latest !== '' && version_compare($latest, LEADS_COLLECTOR_VERSION, '>');
+
+        if ($latest === '') {
+            $message = __('Click "Check for updates" to look for a new version.', 'leads-collector');
+        } elseif ($has_update) {
+            /* translators: %s: version number. */
+            $message = sprintf(__('Version %s is available.', 'leads-collector'), $latest);
+        } else {
+            $message = __('You have the latest version.', 'leads-collector');
+        }
+
+        return [
+            'installed' => LEADS_COLLECTOR_VERSION,
+            'latest' => $latest,
+            'hasUpdate' => $has_update,
+            'message' => $message,
+            'releaseUrl' => $release ? $release['url'] : 'https://github.com/'.self::REPOSITORY.'/releases',
+            'plugin' => plugin_basename(LEADS_COLLECTOR_FILE),
+            'slug' => self::SLUG,
+        ];
+    }
+
+    /**
+     * Release zips unpack to "leads-collector/". When this copy lives in another folder (for
+     * example "leads-collector-main" from a GitHub "Download ZIP"), install the update into
+     * that same folder, so the plugin stays active and keeps its place.
+     *
+     * @param  mixed  $source  Unpacked folder.
+     * @param  mixed  $remote_source  Folder the package was unpacked into.
+     * @param  mixed  $upgrader  Upgrader instance.
+     * @param  mixed  $hook_extra  Details of the running update.
+     * @return mixed
+     */
+    public static function keep_folder_name($source, $remote_source, $upgrader, $hook_extra = [])
+    {
+        global $wp_filesystem;
+
+        if (! is_string($source) || ! is_array($hook_extra) || ! isset($hook_extra['plugin']) || $hook_extra['plugin'] !== plugin_basename(LEADS_COLLECTOR_FILE)) {
+            return $source;
+        }
+
+        $folder = dirname(plugin_basename(LEADS_COLLECTOR_FILE));
+        $source = untrailingslashit($source);
+
+        if ($folder === '.' || basename($source) === $folder || ! $wp_filesystem) {
+            return trailingslashit($source);
+        }
+
+        $target = trailingslashit((string) $remote_source).$folder;
+
+        if (! $wp_filesystem->move($source, $target, true)) {
+            return new WP_Error('leads_collector_folder', __('Could not prepare the Leads Collector update folder.', 'leads-collector'));
+        }
+
+        return trailingslashit($target);
     }
 
     /**
